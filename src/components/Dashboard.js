@@ -12,27 +12,29 @@ import {
   getInterviewsPerDay
  } from "helpers/selectors";
 
+import {setInterview } from "helpers/reducers";
+
  const data = [
-  {
-    id: 1,
-    label: "Total Interviews",
-    getValue: getTotalInterviews
-  },
-  {
-    id: 2,
-    label: "Least Popular Time Slot",
-    getValue: getLeastPopularTimeSlot
-  },
-  {
-    id: 3,
-    label: "Most Popular Day",
-    getValue: getMostPopularDay
-  },
-  {
-    id: 4,
-    label: "Interviews Per Day",
-    getValue: getInterviewsPerDay
-  }
+ {
+   id: 1,
+   label: "Total Interviews",
+   getValue: getTotalInterviews
+ },
+ {
+   id: 2,
+   label: "Least Popular Time Slot",
+   getValue: getLeastPopularTimeSlot
+ },
+ {
+   id: 3,
+   label: "Most Popular Day",
+   getValue: getMostPopularDay
+ },
+ {
+   id: 4,
+   label: "Interviews Per Day",
+   getValue: getInterviewsPerDay
+ }
 ];
 
 class Dashboard extends Component {
@@ -43,12 +45,6 @@ class Dashboard extends Component {
     appointments: {},
     interviewers: {}
   };
-
-  selectPanel(id) {
-    this.setState(previousState => ({
-      focused: previousState.focused !== null ? null : id
-    }));
-  }
 
   componentDidMount() {
     const focused = JSON.parse(localStorage.getItem("focused"));
@@ -69,7 +65,20 @@ class Dashboard extends Component {
         interviewers: interviewers.data
       });
     });
-  }
+
+    // WebSocket
+    this.socket = new WebSocket(process.env.REACT_APP_WEBSOCKET_URL);
+    this.socket.onmessage = event => {
+      const data = JSON.parse(event.data);
+    
+      if (typeof data === "object" && data.type === "SET_INTERVIEW") {
+        this.setState(previousState =>
+          setInterview(previousState, data.id, data.interview)
+        );
+      }
+    };
+  };
+
 
   componentDidUpdate(previousProps, previousState) {
     if (previousState.focused !== this.state.focused) {
@@ -77,6 +86,12 @@ class Dashboard extends Component {
     }
   }
 
+  selectPanel(id) {
+    this.setState(previousState => ({
+      focused: previousState.focused !== null ? null : id
+    }));
+  }
+  
   render() {
     const dashboardClasses = classnames("dashboard", {
       "dashboard--focused": this.state.focused
